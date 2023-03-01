@@ -128,6 +128,9 @@ type ClientConfigLoadingRules struct {
 	// WarnIfAllMissing indicates whether the configuration files pointed by KUBECONFIG environment variable are present or not.
 	// In case of missing files, it warns the user about the missing files.
 	WarnIfAllMissing bool
+
+	// KubeConfigLoader allows dynamic loading of kube config.
+	KubeConfigLoader func(path string) (*clientcmdapi.Config, error)
 }
 
 // ClientConfigLoadingRules implements the ClientConfigLoader interface.
@@ -200,8 +203,14 @@ func (rules *ClientConfigLoadingRules) Load() (*clientcmdapi.Config, error) {
 			// no work to do
 			continue
 		}
+		var config *clientcmdapi.Config
+		var err error
 
-		config, err := LoadFromFile(filename)
+		if rules.KubeConfigLoader != nil {
+			config, err = rules.KubeConfigLoader(filename)
+		} else {
+			config, err = LoadFromFile(filename)
+		}
 
 		if os.IsNotExist(err) {
 			// skip missing files
