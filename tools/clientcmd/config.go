@@ -164,7 +164,8 @@ func NewDefaultPathOptions() *PathOptions {
 // that means that this code will only write into a single file.  If you want to relativizePaths, you must provide a fully qualified path in any
 // modified element.
 func ModifyConfig(configAccess ConfigAccess, newConfig clientcmdapi.Config, relativizePaths bool) error {
-	if UseModifyConfigLock {
+	// TODO: Chewbacca.....
+	if UseModifyConfigLock && configAccess.(*PathOptions).LoadingRules.KubeConfigLoader == nil {
 		possibleSources := configAccess.GetLoadingPrecedence()
 		// sort the possible kubeconfig files so we always "lock" in the same order
 		// to avoid deadlock (note: this can fail w/ symlinks, but... come on).
@@ -210,7 +211,13 @@ func ModifyConfig(configAccess ConfigAccess, newConfig clientcmdapi.Config, rela
 				destinationFile = configAccess.GetDefaultFilename()
 			}
 
-			configToWrite, err := getConfigFromFile(destinationFile)
+			var configToWrite *clientcmdapi.Config
+			var err error
+			if configAccess.(*PathOptions).LoadingRules.KubeConfigLoader != nil {
+				configToWrite, err = configAccess.(*PathOptions).LoadingRules.KubeConfigLoader(destinationFile)
+			} else {
+				configToWrite, err = getConfigFromFile(destinationFile)
+			}
 			if err != nil {
 				return err
 			}
@@ -224,8 +231,10 @@ func ModifyConfig(configAccess ConfigAccess, newConfig clientcmdapi.Config, rela
 				}
 			}
 
-			if err := WriteToFile(*configToWrite, destinationFile); err != nil {
-				return err
+			if configAccess.(*PathOptions).LoadingRules.KubeConfigLoader == nil {
+				if err := WriteToFile(*configToWrite, destinationFile); err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -248,7 +257,12 @@ func ModifyConfig(configAccess ConfigAccess, newConfig clientcmdapi.Config, rela
 			configToWrite, seen := seenConfigs[destinationFile]
 			if !seen {
 				var err error
-				configToWrite, err = getConfigFromFile(destinationFile)
+				if configAccess.(*PathOptions).LoadingRules.KubeConfigLoader != nil {
+					configToWrite, err = configAccess.(*PathOptions).LoadingRules.KubeConfigLoader(destinationFile)
+				} else {
+					configToWrite, err = getConfigFromFile(destinationFile)
+				}
+
 				if err != nil {
 					return err
 				}
@@ -259,10 +273,12 @@ func ModifyConfig(configAccess ConfigAccess, newConfig clientcmdapi.Config, rela
 		}
 	}
 
-	// actually persist config object changes
-	for destinationFile, configToWrite := range seenConfigs {
-		if err := WriteToFile(*configToWrite, destinationFile); err != nil {
-			return err
+	if configAccess.(*PathOptions).LoadingRules.KubeConfigLoader == nil {
+		// actually persist config object changes
+		for destinationFile, configToWrite := range seenConfigs {
+			if err := WriteToFile(*configToWrite, destinationFile); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -274,7 +290,13 @@ func ModifyConfig(configAccess ConfigAccess, newConfig clientcmdapi.Config, rela
 				destinationFile = configAccess.GetDefaultFilename()
 			}
 
-			configToWrite, err := getConfigFromFile(destinationFile)
+			var configToWrite *clientcmdapi.Config
+			var err error
+			if configAccess.(*PathOptions).LoadingRules.KubeConfigLoader != nil {
+				configToWrite, err = configAccess.(*PathOptions).LoadingRules.KubeConfigLoader(destinationFile)
+			} else {
+				configToWrite, err = getConfigFromFile(destinationFile)
+			}
 			if err != nil {
 				return err
 			}
@@ -287,8 +309,10 @@ func ModifyConfig(configAccess ConfigAccess, newConfig clientcmdapi.Config, rela
 				}
 			}
 
-			if err := WriteToFile(*configToWrite, destinationFile); err != nil {
-				return err
+			if configAccess.(*PathOptions).LoadingRules.KubeConfigLoader == nil {
+				if err := WriteToFile(*configToWrite, destinationFile); err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -306,8 +330,10 @@ func ModifyConfig(configAccess ConfigAccess, newConfig clientcmdapi.Config, rela
 			}
 			delete(configToWrite.Clusters, key)
 
-			if err := WriteToFile(*configToWrite, destinationFile); err != nil {
-				return err
+			if configAccess.(*PathOptions).LoadingRules.KubeConfigLoader == nil {
+				if err := WriteToFile(*configToWrite, destinationFile); err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -319,14 +345,22 @@ func ModifyConfig(configAccess ConfigAccess, newConfig clientcmdapi.Config, rela
 				destinationFile = configAccess.GetDefaultFilename()
 			}
 
-			configToWrite, err := getConfigFromFile(destinationFile)
+			var configToWrite *clientcmdapi.Config
+			var err error
+			if configAccess.(*PathOptions).LoadingRules.KubeConfigLoader != nil {
+				configToWrite, err = configAccess.(*PathOptions).LoadingRules.KubeConfigLoader(destinationFile)
+			} else {
+				configToWrite, err = getConfigFromFile(destinationFile)
+			}
 			if err != nil {
 				return err
 			}
 			delete(configToWrite.Contexts, key)
 
-			if err := WriteToFile(*configToWrite, destinationFile); err != nil {
-				return err
+			if configAccess.(*PathOptions).LoadingRules.KubeConfigLoader == nil {
+				if err := WriteToFile(*configToWrite, destinationFile); err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -338,14 +372,22 @@ func ModifyConfig(configAccess ConfigAccess, newConfig clientcmdapi.Config, rela
 				destinationFile = configAccess.GetDefaultFilename()
 			}
 
-			configToWrite, err := getConfigFromFile(destinationFile)
+			var configToWrite *clientcmdapi.Config
+			var err error
+			if configAccess.(*PathOptions).LoadingRules.KubeConfigLoader != nil {
+				configToWrite, err = configAccess.(*PathOptions).LoadingRules.KubeConfigLoader(destinationFile)
+			} else {
+				configToWrite, err = getConfigFromFile(destinationFile)
+			}
 			if err != nil {
 				return err
 			}
 			delete(configToWrite.AuthInfos, key)
 
-			if err := WriteToFile(*configToWrite, destinationFile); err != nil {
-				return err
+			if configAccess.(*PathOptions).LoadingRules.KubeConfigLoader == nil {
+				if err := WriteToFile(*configToWrite, destinationFile); err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -402,34 +444,44 @@ func writeCurrentContext(configAccess ConfigAccess, newCurrentContext string) er
 
 	if len(newCurrentContext) > 0 {
 		destinationFile := configAccess.GetDefaultFilename()
-		config, err := getConfigFromFile(destinationFile)
+		var config *clientcmdapi.Config
+		var err error
+		if configAccess.(*PathOptions).LoadingRules.KubeConfigLoader != nil {
+			config, err = configAccess.(*PathOptions).LoadingRules.KubeConfigLoader(destinationFile)
+		} else {
+			config, err = getConfigFromFile(destinationFile)
+		}
 		if err != nil {
 			return err
 		}
 		config.CurrentContext = newCurrentContext
 
-		if err := WriteToFile(*config, destinationFile); err != nil {
-			return err
+		if configAccess.(*PathOptions).LoadingRules.KubeConfigLoader == nil {
+			if err := WriteToFile(*config, destinationFile); err != nil {
+				return err
+			}
 		}
 
 		return nil
 	}
 
 	// we're supposed to be clearing the current context.  We need to find the first spot in the chain that is setting it and clear it
-	for _, file := range configAccess.GetLoadingPrecedence() {
-		if _, err := os.Stat(file); err == nil {
-			currConfig, err := getConfigFromFile(file)
-			if err != nil {
-				return err
-			}
-
-			if len(currConfig.CurrentContext) > 0 {
-				currConfig.CurrentContext = newCurrentContext
-				if err := WriteToFile(*currConfig, file); err != nil {
+	if configAccess.(*PathOptions).LoadingRules.KubeConfigLoader == nil {
+		for _, file := range configAccess.GetLoadingPrecedence() {
+			if _, err := os.Stat(file); err == nil {
+				currConfig, err := getConfigFromFile(file)
+				if err != nil {
 					return err
 				}
 
-				return nil
+				if len(currConfig.CurrentContext) > 0 {
+					currConfig.CurrentContext = newCurrentContext
+					if err := WriteToFile(*currConfig, file); err != nil {
+						return err
+					}
+
+					return nil
+				}
 			}
 		}
 	}
@@ -446,20 +498,34 @@ func writePreferences(configAccess ConfigAccess, newPrefs clientcmdapi.Preferenc
 
 	if configAccess.IsExplicitFile() {
 		file := configAccess.GetExplicitFile()
-		currConfig, err := getConfigFromFile(file)
+		var currConfig *clientcmdapi.Config
+		var err error
+		if configAccess.(*PathOptions).LoadingRules.KubeConfigLoader != nil {
+			currConfig, err = configAccess.(*PathOptions).LoadingRules.KubeConfigLoader(file)
+		} else {
+			currConfig, err = getConfigFromFile(file)
+		}
 		if err != nil {
 			return err
 		}
 		currConfig.Preferences = newPrefs
-		if err := WriteToFile(*currConfig, file); err != nil {
-			return err
+		if configAccess.(*PathOptions).LoadingRules.KubeConfigLoader == nil {
+			if err := WriteToFile(*currConfig, file); err != nil {
+				return err
+			}
 		}
 
 		return nil
 	}
 
 	for _, file := range configAccess.GetLoadingPrecedence() {
-		currConfig, err := getConfigFromFile(file)
+		var currConfig *clientcmdapi.Config
+		var err error
+		if configAccess.(*PathOptions).LoadingRules.KubeConfigLoader != nil {
+			currConfig, err = configAccess.(*PathOptions).LoadingRules.KubeConfigLoader(file)
+		} else {
+			currConfig, err = getConfigFromFile(file)
+		}
 		if err != nil {
 			return err
 		}
