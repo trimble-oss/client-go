@@ -430,13 +430,21 @@ func writeCurrentContext(configAccess ConfigAccess, newCurrentContext string) er
 
 	if configAccess.IsExplicitFile() {
 		file := configAccess.GetExplicitFile()
-		currConfig, err := getConfigFromFile(file)
+		var err error
+		var currConfig *clientcmdapi.Config
+		if configAccess.(*PathOptions).LoadingRules.KubeConfigLoader != nil {
+			currConfig, err = configAccess.(*PathOptions).LoadingRules.KubeConfigLoader(file)
+		} else {
+			currConfig, err = getConfigFromFile(file)
+		}
 		if err != nil {
 			return err
 		}
 		currConfig.CurrentContext = newCurrentContext
-		if err := WriteToFile(*currConfig, file); err != nil {
-			return err
+		if configAccess.(*PathOptions).LoadingRules.KubeConfigLoader == nil {
+			if err := WriteToFile(*currConfig, file); err != nil {
+				return err
+			}
 		}
 
 		return nil
